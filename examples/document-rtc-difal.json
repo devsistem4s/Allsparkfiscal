@@ -1,0 +1,77 @@
+{
+  "company_id": "REPLACE_WITH_COMPANY_ID",
+  "kind": "nfe",
+  "operation": "generate",
+  "environment": "homologation",
+  "series": 1,
+  "invoice": {
+    "nature": "VENDA INTERESTADUAL CONSUMIDOR FINAL",
+    "recipient": {
+      "tax_id": "52998224725",
+      "name": "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL",
+      "ie_indicator": 9,
+      "address": {
+        "street": "AVENIDA PAULISTA",
+        "number": "1000",
+        "district": "BELA VISTA",
+        "city_code": "3550308",
+        "city": "SAO PAULO",
+        "state": "SP",
+        "postal_code": "01310100"
+      }
+    },
+    "items": [
+      {
+        "sku": "RTC001",
+        "description": "PRODUTO COM REFORMA TRIBUTARIA E DIFAL",
+        "ncm": "61091000",
+        "cfop": "6108",
+        "unit": "UN",
+        "quantity": "1.0000",
+        "unit_price": "100.00",
+        "total": "100.00",
+        "taxes": {
+          "icms": {
+            "origin": 0,
+            "cst": "00",
+            "base": "100.00",
+            "rate": "12.00",
+            "amount": "12.00"
+          },
+          "icms_uf_dest": {
+            "internal_rate": "18.00",
+            "interstate_rate": "12.00",
+            "fcp_rate": "2.00"
+          },
+          "pis": {
+            "cst": "01",
+            "base": "100.00",
+            "rate": "1.65",
+            "amount": "1.65"
+          },
+          "cofins": {
+            "cst": "01",
+            "base": "100.00",
+            "rate": "7.60",
+            "amount": "7.60"
+          },
+          "ibs_cbs": {
+            "cst": "000",
+            "c_class_trib": "000001",
+            "base": "100.00",
+            "ibs_uf_rate": "0.10",
+            "ibs_mun_rate": "0.00",
+            "cbs_rate": "0.90"
+          }
+        }
+      }
+    ],
+    "payments": [
+      {
+        "method": "01",
+        "amount": "100.00"
+      }
+    ]
+  }
+}
+

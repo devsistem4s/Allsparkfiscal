@@ -1,0 +1,15 @@
+# Credenciais e artefatos fiscais
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+/vendor/
+**/vendor/
+/var/
+/bin/
+/coverage.out
+/third_party/
+__pycache__/

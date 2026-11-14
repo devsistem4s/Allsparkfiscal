@@ -1,0 +1,20 @@
+# Supply a private S3-compatible bucket and a real application credential first.
+# docker compose -f compose.yaml -f compose.s3.yaml up -d
+x-s3: &s3
+  STORAGE_DRIVER: s3
+  S3_ENDPOINT: "${S3_ENDPOINT:?Set S3_ENDPOINT to host:port}"
+  S3_ACCESS_KEY: "${S3_ACCESS_KEY:?Set S3_ACCESS_KEY}"
+  S3_SECRET_KEY_FILE: /run/secrets/s3_secret_key
+  S3_BUCKET: "${S3_BUCKET:-allspark-fiscal}"
+  S3_REGION: "${S3_REGION:-us-east-1}"
+  S3_TLS: "${S3_TLS:-true}"
+services:
+  api:
+    environment: *s3
+    secrets: [s3_secret_key]
+  worker:
+    environment: *s3
+    secrets: [s3_secret_key]
+secrets:
+  s3_secret_key:
+    file: ./var/secrets/s3_secret_key

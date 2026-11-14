@@ -1,0 +1,145 @@
+[
+  {
+    "tag": "ide",
+    "values": {
+      "natOp": "VENDA",
+      "tpNF": 1,
+      "idDest": 1,
+      "cMunFG": "2927408",
+      "tpImp": 1,
+      "finNFe": 1,
+      "indFinal": 1,
+      "indPres": 1
+    }
+  },
+  {
+    "tag": "enderEmit",
+    "values": {
+      "xLgr": "RUA TESTE",
+      "nro": "100",
+      "xBairro": "CENTRO",
+      "cMun": "2927408",
+      "xMun": "SALVADOR",
+      "UF": "BA",
+      "CEP": "40020000",
+      "cPais": "1058",
+      "xPais": "BRASIL"
+    }
+  },
+  {
+    "tag": "dest",
+    "values": {
+      "CNPJ": "11222333000181",
+      "xNome": "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL",
+      "indIEDest": 9
+    }
+  },
+  {
+    "tag": "enderDest",
+    "values": {
+      "xLgr": "RUA TESTE",
+      "nro": "200",
+      "xBairro": "CENTRO",
+      "cMun": "2927408",
+      "xMun": "SALVADOR",
+      "UF": "BA",
+      "CEP": "40020000",
+      "cPais": "1058",
+      "xPais": "BRASIL"
+    }
+  },
+  {
+    "tag": "prod",
+    "values": {
+      "item": 1,
+      "cProd": "TESTE001",
+      "cEAN": "SEM GTIN",
+      "xProd": "PRODUTO DE TESTE",
+      "NCM": "61091000",
+      "CFOP": "5102",
+      "uCom": "UN",
+      "qCom": "1.0000",
+      "vUnCom": "10.00",
+      "vProd": "10.00",
+      "cEANTrib": "SEM GTIN",
+      "uTrib": "UN",
+      "qTrib": "1.0000",
+      "vUnTrib": "10.00",
+      "indTot": 1
+    }
+  },
+  {
+    "tag": "imposto",
+    "values": {
+      "item": 1,
+      "vTotTrib": "0.00"
+    }
+  },
+  {
+    "tag": "ICMSSN",
+    "values": {
+      "item": 1,
+      "orig": 0,
+      "CSOSN": "102"
+    }
+  },
+  {
+    "tag": "PIS",
+    "values": {
+      "item": 1,
+      "CST": "07"
+    }
+  },
+  {
+    "tag": "COFINS",
+    "values": {
+      "item": 1,
+      "CST": "07"
+    }
+  },
+  {
+    "tag": "ICMSTot",
+    "values": {
+      "vBC": "0.00",
+      "vICMS": "0.00",
+      "vICMSDeson": "0.00",
+      "vFCP": "0.00",
+      "vBCST": "0.00",
+      "vST": "0.00",
+      "vFCPST": "0.00",
+      "vFCPSTRet": "0.00",
+      "vProd": "10.00",
+      "vFrete": "0.00",
+      "vSeg": "0.00",
+      "vDesc": "0.00",
+      "vII": "0.00",
+      "vIPI": "0.00",
+      "vIPIDevol": "0.00",
+      "vPIS": "0.00",
+      "vCOFINS": "0.00",
+      "vOutro": "0.00",
+      "vNF": "10.00",
+      "vTotTrib": "0.00"
+    }
+  },
+  {
+    "tag": "transp",
+    "values": {
+      "modFrete": 9
+    }
+  },
+  {
+    "tag": "pag",
+    "values": {
+      "vTroco": "0.00"
+    }
+  },
+  {
+    "tag": "detPag",
+    "values": {
+      "indPag": 0,
+      "tPag": "01",
+      "vPag": "10.00"
+    }
+  }
+]

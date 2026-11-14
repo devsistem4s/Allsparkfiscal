@@ -1,0 +1,26 @@
+[
+  {
+    "name": "sped-nfe",
+    "url": "https://github.com/nfephp-org/sped-nfe.git",
+    "commit": "4596b89e457d27ad2c114dda2b2ed04043f6327c",
+    "usage": "runtime composer"
+  },
+  {
+    "name": "sped-da",
+    "url": "https://github.com/nfephp-org/sped-da.git",
+    "commit": "93ae550adcf5dd0c43598f27e323a8af84ceba22",
+    "usage": "runtime composer"
+  },
+  {
+    "name": "open-nfse",
+    "url": "https://github.com/Fm-s/open-nfse.git",
+    "commit": "18d70dd2acac6fcc5c4a918a451c61c548b20596",
+    "usage": "evaluation only"
+  },
+  {
+    "name": "brasil-fiscal-nfe",
+    "url": "https://github.com/brasil-fiscal/nfe.git",
+    "commit": "52dc6df2fd02c7a96ba8b37b071c702291da2fae",
+    "usage": "comparison only"
+  }
+]

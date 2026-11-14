@@ -1,0 +1,497 @@
+{
+  "info": {
+    "_postman_id": "a115pa7k-f15c-4100-9000-000000000004",
+    "name": "AllSpark Fiscal API — Coleção Completa Nacional (NF-e 55, NFC-e 65, Reforma Tributária, Webhooks & MCP)",
+    "description": "# AllSpark Fiscal API (v0.4.0)\n\nColeção oficial inspirada no padrão **Focus NFe / Spedy / PlugNotas** para emissão, simulação, gestão de eventos, fechamento contábil e integração com IA (**Claude, ChatGPT, Gemini**) em todas as **27 UFs do Brasil**.\n\n## Como funciona\n1. **Autenticação**: Envie `Authorization: Bearer {{api_key}}` em todos os endpoints `/v1/*`.\n2. **Referência Externa (`ref`)**: Envie o ID do pedido do seu ERP/E-commerce (`\"ref\": \"PEDIDO-1001\"`) na criação da nota e consulte/baixe XML/PDF/cancele diretamente em `/v1/documents/ref/PEDIDO-1001`.\n3. **Webhook por Requisição (`webhook_url`)**: Envie `\"webhook_url\": \"https://seu-sistema.com/webhook\"` no próprio corpo da nota para receber o retorno assinado (`HMAC-SHA256` no header `X-AllSpark-Signature`) assim que a nota for autorizada ou rejeitada.\n4. **Erros Acionáveis**: Qualquer erro retorna `code`, `sefaz_code`, `message` (**qual foi o erro**) e `action` (**o que fazer para corrigir**).\n5. **MCP Nativo (`/v1/mcp`)**: Conecte **Claude Desktop, Claude Code, ChatGPT, Gemini, Cursor ou Windsurf** para operar toda a API por linguagem natural com isolamento de tenant e escopos de segurança.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8088" },
+    { "key": "api_key", "value": "af_sua_chave_aqui" },
+    { "key": "company_id", "value": "bb7cbc40-79d5-4830-8a75-78c31fa764d3" },
+    { "key": "document_id", "value": "f5b53809-3817-40e9-a893-f0c2e01c2794" },
+    { "key": "ref", "value": "PEDIDO-1001" },
+    { "key": "access_key", "value": "29261111222333000181550010000000011849201928" }
+  ],
+  "item": [
+    {
+      "name": "1. Saúde, Capacidades, UFs e Tipos de Notas",
+      "description": "Endpoints públicos de saúde e catálogos de capacidades, 27 UFs SEFAZ e matriz de modelos fiscais suportados.",
+      "item": [
+        {
+          "name": "Healthcheck (Liveness)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/healthz",
+            "description": "Verifica se o processo HTTP da API está no ar."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"data\":{\"status\":\"ok\"},\"error\":null,\"request_id\":\"req-1\"}"
+            }
+          ]
+        },
+        {
+          "name": "Readiness (Banco & Redis)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/readyz",
+            "description": "Verifica conectividade em tempo real com PostgreSQL e Redis."
+          }
+        },
+        {
+          "name": "Capacidades da API (/v1/capabilities)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/capabilities",
+            "description": "Retorna todas as features ativas na instalação (Reforma Tributária IBS/CBS, DIFAL, Webhooks, MCP Server, Escudo Anti-656)."
+          },
+          "response": [
+            {
+              "name": "200 OK — Capacidades Ativas",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": {\n    \"multi_tenant\": true,\n    \"queue\": \"rabbitmq\",\n    \"generation\": true,\n    \"issuance_enabled\": true,\n    \"simplified_national\": true,\n    \"reforma_tributaria_rtc\": true,\n    \"difal\": true,\n    \"webhooks\": true,\n    \"mcp_server\": \"/v1/mcp\",\n    \"worker_concurrency\": true,\n    \"sefaz_anti_656_shield\": true,\n    \"document_types\": [\"nfe\", \"nfce\"]\n  },\n  \"error\": null,\n  \"request_id\": \"req-cap-01\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Tipos e Finalidades de Notas Suportadas (/v1/document-types)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/document-types",
+            "description": "Lista todos os modelos de documentos fiscais (NF-e 55, NFC-e 65), finalidades (Normal, Complementar, Ajuste, Devolução), direções (Entrada/Saída), destinos (Interna, Interestadual, Exterior) e eventos suportados."
+          }
+        },
+        {
+          "name": "Listar as 27 UFs e Autorizadores SEFAZ (/v1/states)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/states",
+            "description": "Lista todas as 27 Unidades Federativas do Brasil com código IBGE e autorizador SEFAZ (próprio ou SVRS/SVAN)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Empresas, Prontidão (Readiness), Certificados A1 e Perfis Tributários",
+      "description": "Onboarding completo de empresas emitentes, diagnóstico de prontidão fiscal, upload de Certificado Digital A1, configuração de séries e perfis tributários reutilizáveis.",
+      "item": [
+        {
+          "name": "Cadastrar Empresa Emitente (com Logo DANFE e Contingência)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/companies",
+            "description": "Cadastra uma nova empresa emitente. O campo `logo_base64` é impresso automaticamente no DANFE/DANFCE PDF.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cnpj\": \"11222333000181\",\n  \"name\": \"ALLSPARK TECNOLOGIA FISCAL LTDA\",\n  \"uf\": \"BA\",\n  \"ie\": \"12345678\",\n  \"crt\": 1,\n  \"contingency_mode\": \"auto\",\n  \"logo_base64\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\",\n  \"address\": {\n    \"street\": \"AV TANCREDO NEVES\",\n    \"number\": \"1000\",\n    \"district\": \"CAMINHO DAS ARVORES\",\n    \"city_code\": \"2927408\",\n    \"city\": \"SALVADOR\",\n    \"state\": \"BA\",\n    \"postal_code\": \"41820021\"\n  }\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created — Empresa Cadastrada",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"data\": {\n    \"id\": \"bb7cbc40-79d5-4830-8a75-78c31fa764d3\",\n    \"cnpj\": \"11222333000181\",\n    \"name\": \"ALLSPARK TECNOLOGIA FISCAL LTDA\",\n    \"uf\": \"BA\",\n    \"ie\": \"12345678\",\n    \"crt\": 1,\n    \"contingency_mode\": \"auto\"\n  },\n  \"error\": null,\n  \"request_id\": \"req-comp-01\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Diagnóstico de Prontidão da Empresa (/v1/companies/{id}/readiness)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/companies/{{company_id}}/readiness",
+            "description": "Verifica em uma única chamada se a empresa está 100% pronta para emitir NF-e e NFC-e (endereço, certificado A1 válido, dias restantes, séries habilitadas, perfis tributários, webhooks e lista de passos pendentes)."
+          },
+          "response": [
+            {
+              "name": "200 OK — Empresa Pronta para Emitir",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": {\n    \"company_id\": \"bb7cbc40-79d5-4830-8a75-78c31fa764d3\",\n    \"cnpj\": \"11222333000181\",\n    \"name\": \"ALLSPARK TECNOLOGIA FISCAL LTDA\",\n    \"uf\": \"BA\",\n    \"crt\": 1,\n    \"active\": true,\n    \"has_address\": true,\n    \"has_valid_certificate\": true,\n    \"certificate_days_remaining\": 340,\n    \"ready_for_nfe\": true,\n    \"ready_for_nfce\": false,\n    \"pending_steps\": null\n  },\n  \"error\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Configurar Série e Ambiente NF-e (Modelo 55)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/companies/{{company_id}}/fiscal/nfe",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"environment\": \"homologation\",\n  \"series\": 1,\n  \"enabled\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Configurar Série e Ambiente NFC-e (Modelo 65)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/companies/{{company_id}}/fiscal/nfce",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"environment\": \"homologation\",\n  \"series\": 1,\n  \"enabled\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Upload de Certificado Digital ICP-Brasil A1 (.pfx)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/companies/{{company_id}}/certificates",
+            "description": "Armazena o certificado A1 criptografado em envelope AES-256-GCM após validar senha, titularidade do CNPJ e cadeia ICP-Brasil.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pfx_base64\": \"MII...\",\n  \"password\": \"senha-do-certificado\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Monitorar Certificados Próximos do Vencimento (/v1/certificates/expiring)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/certificates/expiring?days=30",
+            "description": "Lista todos os certificados A1 do tenant que expiram nos próximos N dias."
+          }
+        },
+        {
+          "name": "Criar/Atualizar Perfil Tributário Reutilizável (Tax Profile)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/companies/{{company_id}}/tax-profiles",
+            "description": "Permite que o contador configure as regras fiscais uma única vez (ex.: `REVENDA_PADRAO`) e o desenvolvedor envie apenas o nome do perfil no pedido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"REVENDA_PADRAO\",\n  \"description\": \"Revenda Simples Nacional com Reforma Tributária IBS/CBS\",\n  \"ncm_default\": \"84713012\",\n  \"cfop_internal\": \"5102\",\n  \"cfop_interstate\": \"6102\",\n  \"taxes\": {\n    \"icms\": { \"origin\": 0, \"csosn\": \"102\" },\n    \"pis\": { \"cst\": \"49\" },\n    \"cofins\": { \"cst\": \"49\" },\n    \"ibs_cbs\": {\n      \"cst\": \"000\",\n      \"c_class_trib\": \"000001\",\n      \"ibs_uf_rate\": \"0.10\",\n      \"ibs_mun_rate\": \"0.00\",\n      \"cbs_rate\": \"0.90\"\n    }\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Perfis Tributários da Empresa",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/companies/{{company_id}}/tax-profiles"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Emissão Simplificada para Iniciantes (Order Preview & Order-to-Invoice)",
+      "description": "Transforme qualquer pedido comercial em NF-e (55) ou NFC-e (65) sem precisar calcular impostos manualmente.",
+      "item": [
+        {
+          "name": "Simular Pedido e Calcular Impostos (POST /v1/orders/preview)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/orders/preview",
+            "description": "Simula um pedido sem gravar no banco e sem consumir numeração, devolvendo o CFOP automático (5102 vs 6102), o destino da operação e todos os totais de ICMS e Reforma Tributária (IBS/CBS).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": \"{{company_id}}\",\n  \"tax_profile\": \"REVENDA_PADRAO\",\n  \"customer\": {\n    \"tax_id\": \"11144477735\",\n    \"name\": \"CLIENTE FINAL EXEMPLO\",\n    \"ie_indicator\": 9,\n    \"address\": {\n      \"street\": \"Av Tancredo Neves\",\n      \"number\": \"500\",\n      \"district\": \"Caminho das Arvores\",\n      \"city_code\": \"2927408\",\n      \"city\": \"Salvador\",\n      \"state\": \"BA\",\n      \"postal_code\": \"41820021\"\n    }\n  },\n  \"items\": [\n    {\n      \"sku\": \"SKU-NOTEBOOK-01\",\n      \"description\": \"NOTEBOOK ULTRA PRO 16GB\",\n      \"quantity\": \"1.0000\",\n      \"price\": \"4500.00\"\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Emitir Nota a partir de Pedido (POST /v1/orders/invoice com ref e webhook_url)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "order-{{ref}}" }
+            ],
+            "url": "{{base_url}}/v1/orders/invoice",
+            "description": "Emite ou gera a nota fiscal a partir dos dados comerciais do pedido, vinculando `ref` e enviando `webhook_url` para receber o retorno automático.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": \"{{company_id}}\",\n  \"ref\": \"{{ref}}\",\n  \"operation\": \"generate\",\n  \"webhook_url\": \"https://seu-sistema.com.br/webhooks/nfe\",\n  \"webhook_secret\": \"segredo-hmac-pedido\",\n  \"tax_profile\": \"REVENDA_PADRAO\",\n  \"customer\": {\n    \"tax_id\": \"11144477735\",\n    \"name\": \"CLIENTE FINAL EXEMPLO\",\n    \"ie_indicator\": 9,\n    \"address\": {\n      \"street\": \"Av Tancredo Neves\",\n      \"number\": \"500\",\n      \"district\": \"Caminho das Arvores\",\n      \"city_code\": \"2927408\",\n      \"city\": \"Salvador\",\n      \"state\": \"BA\",\n      \"postal_code\": \"41820021\"\n    }\n  },\n  \"items\": [\n    {\n      \"sku\": \"SKU-NOTEBOOK-01\",\n      \"description\": \"NOTEBOOK ULTRA PRO 16GB\",\n      \"quantity\": \"1.0000\",\n      \"price\": \"4500.00\"\n    }\n  ],\n  \"payment_method\": \"pix\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "202 Accepted — Nota Enfileirada",
+              "status": "Accepted",
+              "code": 202,
+              "body": "{\n  \"data\": {\n    \"id\": \"f5b53809-3817-40e9-a893-f0c2e01c2794\",\n    \"kind\": \"nfe\",\n    \"ref\": \"PEDIDO-1001\",\n    \"ref_url\": \"/v1/documents/ref/PEDIDO-1001\",\n    \"status_url\": \"/v1/documents/f5b53809-3817-40e9-a893-f0c2e01c2794\",\n    \"xml_url\": \"/v1/documents/f5b53809-3817-40e9-a893-f0c2e01c2794/xml\",\n    \"pdf_url\": \"/v1/documents/f5b53809-3817-40e9-a893-f0c2e01c2794/pdf\",\n    \"webhook_url\": \"https://seu-sistema.com.br/webhooks/nfe\"\n  },\n  \"error\": null\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Emissão Completa e Modalidades (Normal, Devolução, DIFAL, Reforma Tributária, Lote)",
+      "description": "Exemplos prontos para todas as modalidades fiscais suportadas pelo motor (`POST /v1/documents` e `POST /v1/documents/bulk`).",
+      "item": [
+        {
+          "name": "4.1. NF-e Venda Interestadual com DIFAL + Reforma Tributária (IBS/CBS/IS)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "nfe-rtc-difal-001" }
+            ],
+            "url": "{{base_url}}/v1/documents",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": \"{{company_id}}\",\n  \"kind\": \"nfe\",\n  \"operation\": \"generate\",\n  \"environment\": \"homologation\",\n  \"series\": 1,\n  \"ref\": \"NFE-DIFAL-RTC-01\",\n  \"webhook_url\": \"https://seu-sistema.com.br/webhooks/nfe\",\n  \"invoice\": {\n    \"nature\": \"VENDA INTERESTADUAL A CONSUMIDOR FINAL\",\n    \"direction\": 1,\n    \"destination\": 2,\n    \"purpose\": 1,\n    \"final_consumer\": true,\n    \"presence\": 2,\n    \"recipient\": {\n      \"tax_id\": \"11144477735\",\n      \"name\": \"CONSUMIDOR DE SAO PAULO\",\n      \"ie_indicator\": 9,\n      \"address\": {\n        \"street\": \"AV PAULISTA\",\n        \"number\": \"1578\",\n        \"district\": \"BELA VISTA\",\n        \"city_code\": \"3550308\",\n        \"city\": \"SAO PAULO\",\n        \"state\": \"SP\",\n        \"postal_code\": \"01310200\"\n      }\n    },\n    \"items\": [\n      {\n        \"sku\": \"PROD-RTC-01\",\n        \"description\": \"EQUIPAMENTO ELETRONICO PREMIUM\",\n        \"ncm\": \"84713012\",\n        \"cfop\": \"6108\",\n        \"unit\": \"UN\",\n        \"quantity\": \"1.0000\",\n        \"unit_price\": \"1000.00\",\n        \"total\": \"1000.00\",\n        \"taxes\": {\n          \"icms\": { \"origin\": 0, \"csosn\": \"102\" },\n          \"icms_uf_dest\": {\n            \"base\": \"1000.00\",\n            \"internal_rate\": \"18.00\",\n            \"interstate_rate\": \"12.00\",\n            \"fcp_rate\": \"2.00\"\n          },\n          \"pis\": { \"cst\": \"07\" },\n          \"cofins\": { \"cst\": \"07\" },\n          \"ibs_cbs\": {\n            \"cst\": \"000\",\n            \"c_class_trib\": \"000001\",\n            \"base\": \"1000.00\",\n            \"ibs_uf_rate\": \"0.10\",\n            \"ibs_mun_rate\": \"0.00\",\n            \"cbs_rate\": \"0.90\"\n          }\n        }\n      }\n    ]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "4.2. NF-e de Devolução de Mercadoria (purpose=4 + referenced_keys)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "nfe-devolucao-001" }
+            ],
+            "url": "{{base_url}}/v1/documents",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": \"{{company_id}}\",\n  \"kind\": \"nfe\",\n  \"operation\": \"generate\",\n  \"environment\": \"homologation\",\n  \"series\": 1,\n  \"ref\": \"DEVOLUCAO-001\",\n  \"invoice\": {\n    \"nature\": \"DEVOLUCAO DE COMPRA PARA COMERCIALIZACAO\",\n    \"direction\": 1,\n    \"destination\": 1,\n    \"purpose\": 4,\n    \"referenced_keys\": [\"{{access_key}}\"],\n    \"recipient\": {\n      \"tax_id\": \"11222333000181\",\n      \"name\": \"FORNECEDOR ORIGINAL LTDA\",\n      \"ie_indicator\": 9,\n      \"address\": {\n        \"street\": \"RUA DO FORNECEDOR\",\n        \"number\": \"200\",\n        \"district\": \"DISTRITO INDUSTRIAL\",\n        \"city_code\": \"2927408\",\n        \"city\": \"SALVADOR\",\n        \"state\": \"BA\",\n        \"postal_code\": \"40020000\"\n      }\n    },\n    \"items\": [\n      {\n        \"sku\": \"ITEM-DEV-01\",\n        \"description\": \"MERCADORIA DEVOLVIDA\",\n        \"ncm\": \"61091000\",\n        \"cfop\": \"5202\",\n        \"unit\": \"UN\",\n        \"quantity\": \"1.0000\",\n        \"unit_price\": \"150.00\"\n      }\n    ]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "4.3. NFC-e Varejo / PDV (Modelo 65)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "nfce-pdv-001" }
+            ],
+            "url": "{{base_url}}/v1/documents",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": \"{{company_id}}\",\n  \"kind\": \"nfce\",\n  \"operation\": \"generate\",\n  \"environment\": \"homologation\",\n  \"series\": 1,\n  \"ref\": \"PDV-CUPOM-001\",\n  \"invoice\": {\n    \"items\": [\n      {\n        \"sku\": \"CAFE-EXP\",\n        \"description\": \"CAFE EXPRESSO ESPECIAL\",\n        \"ncm\": \"22021000\",\n        \"quantity\": \"2.0000\",\n        \"unit_price\": \"12.50\"\n      }\n    ]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "4.4. Emissão em Lote (Bulk até 50 Notas — POST /v1/documents/bulk)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/documents/bulk",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documents\": [\n    {\n      \"idempotency_key\": \"lote-item-1\",\n      \"document\": {\n        \"company_id\": \"{{company_id}}\",\n        \"kind\": \"nfe\",\n        \"operation\": \"generate\",\n        \"environment\": \"homologation\",\n        \"series\": 1,\n        \"ref\": \"LOTE-001\",\n        \"invoice\": {\n          \"recipient\": {\n            \"tax_id\": \"11144477735\",\n            \"name\": \"CLIENTE LOTE 1\",\n            \"ie_indicator\": 9,\n            \"address\": {\n              \"street\": \"Rua A\",\n              \"number\": \"10\",\n              \"district\": \"Centro\",\n              \"city_code\": \"2927408\",\n              \"city\": \"Salvador\",\n              \"state\": \"BA\",\n              \"postal_code\": \"40020000\"\n            }\n          },\n          \"items\": [\n            {\n              \"description\": \"PRODUTO LOTE 1\",\n              \"ncm\": \"61091000\",\n              \"quantity\": \"1.0000\",\n              \"unit_price\": \"100.00\"\n            }\n          ]\n        }\n      }\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Consulta, XML, DANFE PDF e Eventos (Por UUID ou por Referência `ref`)",
+      "description": "Consulte status, baixe XML e DANFE PDF ou envie eventos de Cancelamento e Carta de Correção tanto pelo `id` quanto pela sua referência `ref`.",
+      "item": [
+        {
+          "name": "Consultar Nota por Referência Externa (/v1/documents/ref/{ref})",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/documents/ref/{{ref}}"
+          }
+        },
+        {
+          "name": "Download do XML Assinado/Autorizado por Referência (/v1/documents/ref/{ref}/xml)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/documents/ref/{{ref}}/xml"
+          }
+        },
+        {
+          "name": "Download do DANFE / DANFCE PDF por Referência (/v1/documents/ref/{ref}/pdf)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/documents/ref/{{ref}}/pdf"
+          }
+        },
+        {
+          "name": "Cancelar Nota por Referência (/v1/documents/ref/{ref}/cancel)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/documents/ref/{{ref}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Cancelamento solicitado pelo cliente devido a erro no pedido comercial.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Carta de Correção Eletrônica (CC-e) por Referência (/v1/documents/ref/{ref}/correction-letter)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/documents/ref/{{ref}}/correction-letter",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correction\": \"Altera-se o endereço de entrega para Rua das Flores, nº 850, Bairro Centro.\",\n  \"sequence\": 1\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Operações SEFAZ, Manifestação do Destinatário (MDe) e Backup Contábil ZIP",
+      "description": "Status SEFAZ, Inutilização de Numeração, Distribuição DF-e, Manifestação do Destinatário e Pacote Mensal `.zip` para o Contador.",
+      "item": [
+        {
+          "name": "Status SEFAZ da UF da Empresa (/v1/companies/{id}/sefaz/status)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/companies/{{company_id}}/sefaz/status"
+          }
+        },
+        {
+          "name": "Inutilizar Faixa de Numeração (/v1/companies/{id}/void-range)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/companies/{{company_id}}/void-range",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"nfe\",\n  \"environment\": \"homologation\",\n  \"series\": 1,\n  \"start_number\": 50,\n  \"end_number\": 55,\n  \"reason\": \"Quebra de sequencia na numeracao por falha no sistema local.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Manifestação do Destinatário — MDe (/v1/companies/{id}/dfe/{access_key}/manifest)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/companies/{{company_id}}/dfe/{{access_key}}/manifest",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"ciencia\",\n  \"sequence\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Download Backup Mensal do Contador em ZIP (/v1/companies/{id}/backups/2026-11.zip)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/companies/{{company_id}}/backups/2026-11.zip"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Webhooks e Reenvio Manual",
+      "description": "Gerenciamento de webhooks globais/por empresa e reenvio manual assinado com HMAC-SHA256.",
+      "item": [
+        {
+          "name": "Cadastrar Webhook Global ou por Empresa (/v1/webhooks)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/webhooks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": \"{{company_id}}\",\n  \"url\": \"https://seu-sistema.com.br/webhooks/allspark\",\n  \"secret\": \"whsec_meu_segredo_hmac\",\n  \"events\": [\"document.authorized\", \"document.validated\", \"document.rejected\", \"document.canceled\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Webhooks Ativos (/v1/webhooks)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/webhooks"
+          }
+        },
+        {
+          "name": "Reenviar Webhook de Nota por Referência (/v1/documents/ref/{ref}/webhook/resend)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/documents/ref/{{ref}}/webhook/resend",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Utilitários, Diagnóstico de Erros e Servidor MCP (Claude, ChatGPT, Gemini)",
+      "description": "Catálogo de erros explicados, tabelas CFOP/NCM/CEP/CNPJ e chamadas JSON-RPC 2.0 ao Servidor MCP `/v1/mcp`.",
+      "item": [
+        {
+          "name": "Diagnosticar Erro ou Rejeição SEFAZ (/v1/utils/errors/SEFAZ_539)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/utils/errors/SEFAZ_539"
+          },
+          "response": [
+            {
+              "name": "200 OK — Explicação Acionável",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": {\n    \"code\": \"SEFAZ_539\",\n    \"sefaz_code\": \"539\",\n    \"message\": \"Duplicidade de NF-e com diferença na Chave de Acesso [cStat 539].\",\n    \"action\": \"A série e número desta nota já foram utilizados anteriormente na SEFAZ com outra chave de acesso. Consulte a nota original ou avance a numeração da série em PUT /v1/companies/{id}/fiscal/nfe.\",\n    \"source\": \"sefaz\",\n    \"retryable\": false\n  },\n  \"error\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "MCP Discovery — Manifesto, Tools, Resources e Prompts (GET /v1/mcp)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/v1/mcp"
+          }
+        },
+        {
+          "name": "MCP JSON-RPC: Verificar Prontidão da Empresa (get_company_readiness)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/mcp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_company_readiness\",\n    \"arguments\": {\n      \"company_id\": \"{{company_id}}\"\n    }\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "MCP JSON-RPC: Simular Pedido pela IA (preview_order_invoice)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/mcp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"preview_order_invoice\",\n    \"arguments\": {\n      \"company_id\": \"{{company_id}}\",\n      \"tax_profile\": \"REVENDA_PADRAO\",\n      \"items\": [\n        {\n          \"sku\": \"SKU-IA-01\",\n          \"description\": \"NOTEBOOK EMITIDO POR AGENTE DE IA\",\n          \"quantity\": \"1.0000\",\n          \"price\": \"3500.00\"\n        }\n      ]\n    }\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "MCP JSON-RPC: Emitir Nota pela IA (emit_order_invoice)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/v1/mcp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"emit_order_invoice\",\n    \"arguments\": {\n      \"company_id\": \"{{company_id}}\",\n      \"ref\": \"PEDIDO-IA-001\",\n      \"operation\": \"generate\",\n      \"tax_profile\": \"REVENDA_PADRAO\",\n      \"webhook_url\": \"https://seu-sistema.com.br/webhooks/ia\",\n      \"customer\": {\n        \"tax_id\": \"11144477735\",\n        \"name\": \"CLIENTE ATENDIDO POR IA\",\n        \"ie_indicator\": 9,\n        \"address\": {\n          \"street\": \"Av Tancredo Neves\",\n          \"number\": \"500\",\n          \"district\": \"Caminho das Arvores\",\n          \"city_code\": \"2927408\",\n          \"city\": \"Salvador\",\n          \"state\": \"BA\",\n          \"postal_code\": \"41820021\"\n        }\n      },\n      \"items\": [\n        {\n          \"sku\": \"SKU-IA-01\",\n          \"description\": \"NOTEBOOK EMITIDO POR AGENTE DE IA\",\n          \"quantity\": \"1.0000\",\n          \"price\": \"3500.00\"\n        }\n      ]\n    }\n  }\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

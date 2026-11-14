@@ -1,0 +1,60 @@
+{
+  "company_id": "REPLACE_WITH_COMPANY_ID",
+  "kind": "nfe",
+  "operation": "generate",
+  "environment": "homologation",
+  "series": 1,
+  "invoice": {
+    "nature": "VENDA",
+    "direction": 1,
+    "destination": 1,
+    "city_code": "2927408",
+    "final_consumer": true,
+    "presence": 1,
+    "recipient": {
+      "tax_id": "11222333000181",
+      "name": "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL",
+      "ie_indicator": 9,
+      "address": {
+        "street": "RUA TESTE",
+        "number": "100",
+        "district": "CENTRO",
+        "city_code": "2927408",
+        "city": "SALVADOR",
+        "state": "BA",
+        "postal_code": "40020000"
+      }
+    },
+    "items": [
+      {
+        "sku": "TESTE001",
+        "description": "PRODUTO DE TESTE",
+        "ncm": "61091000",
+        "cfop": "5102",
+        "unit": "UN",
+        "quantity": "1.0000",
+        "unit_price": "10.00",
+        "total": "10.00",
+        "taxes": {
+          "icms": {
+            "origin": 0,
+            "csosn": "102"
+          },
+          "pis": {
+            "cst": "07"
+          },
+          "cofins": {
+            "cst": "07"
+          }
+        }
+      }
+    ],
+    "payments": [
+      {
+        "method": "01",
+        "amount": "10.00"
+      }
+    ],
+    "freight_mode": 9
+  }
+}

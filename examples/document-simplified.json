@@ -1,0 +1,27 @@
+{
+  "company_id": "REPLACE_WITH_COMPANY_ID",
+  "invoice": {
+    "recipient": {
+      "tax_id": "52998224725",
+      "name": "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL",
+      "address": {
+        "street": "AVENIDA PAULISTA",
+        "number": "1000",
+        "district": "BELA VISTA",
+        "city_code": "3550308",
+        "city": "SAO PAULO",
+        "state": "SP",
+        "postal_code": "01310100"
+      }
+    },
+    "items": [
+      {
+        "description": "PRODUTO VENDA NACIONAL SIMPLIFICADA",
+        "ncm": "61091000",
+        "quantity": "2",
+        "unit_price": "25.00"
+      }
+    ]
+  }
+}
+

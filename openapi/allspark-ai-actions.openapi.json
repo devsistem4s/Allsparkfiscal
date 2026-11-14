@@ -1,0 +1,231 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AllSpark Fiscal — AI Actions & Function Calling API (ChatGPT, Claude, Gemini)",
+    "version": "0.4.0",
+    "description": "Especificação OpenAPI 3.1 pronta para importação direta em ChatGPT Custom GPTs (Actions), OpenAI Assistants, Google Gemini / Vertex AI Extensions e Agentes Fiscais Autônomos. Permite consultar prontidão de empresas, simular impostos, emitir NF-e (55) e NFC-e (65), consultar XML/PDF por id ou ref, cancelar notas, emitir Carta de Correção e diagnosticar rejeições SEFAZ."
+  },
+  "servers": [
+    {
+      "url": "https://api.allsparkfiscal.com.br",
+      "description": "Servidor de Produção AllSpark Fiscal"
+    },
+    {
+      "url": "http://127.0.0.1:8088",
+      "description": "Ambiente Local / Docker"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API_KEY",
+        "description": "Chave de API do Tenant (Authorization: Bearer af_...)"
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v1/companies": {
+      "get": {
+        "operationId": "listCompanies",
+        "summary": "Lista todas as empresas emitentes cadastradas no tenant.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Lista paginada de empresas emitentes." }
+        }
+      },
+      "post": {
+        "operationId": "createCompany",
+        "summary": "Cadastra uma nova empresa emitente com endereço e modo de contingência.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cnpj", "name", "uf", "ie", "crt", "address"],
+                "properties": {
+                  "cnpj": { "type": "string" },
+                  "name": { "type": "string" },
+                  "uf": { "type": "string" },
+                  "ie": { "type": "string" },
+                  "crt": { "type": "integer" },
+                  "contingency_mode": { "type": "string", "enum": ["auto", "off", "svc", "offline"] },
+                  "address": {
+                    "type": "object",
+                    "required": ["street", "number", "district", "city_code", "city", "state", "postal_code"],
+                    "properties": {
+                      "street": { "type": "string" },
+                      "number": { "type": "string" },
+                      "district": { "type": "string" },
+                      "city_code": { "type": "string" },
+                      "city": { "type": "string" },
+                      "state": { "type": "string" },
+                      "postal_code": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Empresa cadastrada com sucesso." }
+        }
+      }
+    },
+    "/v1/companies/{company_id}/readiness": {
+      "get": {
+        "operationId": "getCompanyReadiness",
+        "summary": "Verifica se a empresa está 100% pronta para emitir NF-e e NFC-e (certificado A1, séries, endereço e passos pendentes).",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Checklist completo de prontidão fiscal da empresa." }
+        }
+      }
+    },
+    "/v1/orders/preview": {
+      "post": {
+        "operationId": "previewOrderInvoice",
+        "summary": "Simula e calcula impostos (ICMS, PIS/COFINS, DIFAL, Reforma Tributária IBS/CBS) e CFOP de um pedido sem gravar no banco.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["company_id", "items"],
+                "properties": {
+                  "company_id": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["nfe", "nfce"] },
+                  "tax_profile": { "type": "string" },
+                  "customer": { "type": "object" },
+                  "items": { "type": "array", "items": { "type": "object" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Simulação tributária calculada com sucesso." }
+        }
+      }
+    },
+    "/v1/orders/invoice": {
+      "post": {
+        "operationId": "emitOrderInvoice",
+        "summary": "Emite ou gera NF-e (55) ou NFC-e (65) de forma simplificada a partir de um pedido, suportando ref e webhook_url.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["company_id", "items"],
+                "properties": {
+                  "company_id": { "type": "string" },
+                  "ref": { "type": "string" },
+                  "operation": { "type": "string", "enum": ["generate", "issue"] },
+                  "kind": { "type": "string", "enum": ["nfe", "nfce"] },
+                  "tax_profile": { "type": "string" },
+                  "webhook_url": { "type": "string" },
+                  "webhook_secret": { "type": "string" },
+                  "customer": { "type": "object" },
+                  "items": { "type": "array", "items": { "type": "object" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": { "description": "Nota fiscal enfileirada com sucesso." }
+        }
+      }
+    },
+    "/v1/documents/ref/{ref}": {
+      "get": {
+        "operationId": "getDocumentByRef",
+        "summary": "Consulta o status, chave de 44 dígitos, links de XML/PDF e erros explicados de uma nota pela referência externa (ref).",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Dados completos da nota fiscal." }
+        }
+      }
+    },
+    "/v1/documents/ref/{ref}/cancel": {
+      "post": {
+        "operationId": "cancelDocumentByRef",
+        "summary": "Cancela uma NF-e ou NFC-e autorizada pela referência externa (ref).",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string", "minLength": 15, "maxLength": 255 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Nota cancelada na SEFAZ." }
+        }
+      }
+    },
+    "/v1/utils/errors/{code}": {
+      "get": {
+        "operationId": "diagnoseFiscalError",
+        "summary": "Explica qualquer código de erro da API ou cStat de rejeição da SEFAZ informando qual foi o erro (message) e o que fazer (action).",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Diagnóstico detalhado do erro e passo a passo de correção." }
+        }
+      }
+    }
+  }
+}
+

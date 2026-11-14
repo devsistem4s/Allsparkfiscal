@@ -1,0 +1,161 @@
+name: allspark-fiscal
+x-go: &go
+  image: allspark-fiscal-api:local
+  build:
+    context: .
+    dockerfile: infra/Dockerfile
+  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: [/tmp]
+  restart: unless-stopped
+  networks: [backend]
+  logging: &logging
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+x-env: &env
+  DB_PASSWORD_FILE: /run/secrets/db_password
+  DB_POOL_MAX: "10"
+  ENGINE_TOKEN_FILE: /run/secrets/engine_token
+  MASTER_KEY_FILE: /run/secrets/master_key
+  RABBIT_PASSWORD_FILE: /run/secrets/rabbit_password
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
+  ENABLE_ISSUANCE: "${ENABLE_ISSUANCE:-false}"
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: allspark_owner
+      POSTGRES_DB: allspark
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_admin_password
+    secrets: [db_admin_password, db_password]
+    volumes: [postgres_data:/var/lib/postgresql/data, ./infra/postgres-init.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro]
+    networks: [backend]
+    restart: unless-stopped
+    shm_size: 256mb
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U allspark_owner -d allspark"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: *logging
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    entrypoint: [/bin/sh, -ec]
+    command: ['export RABBITMQ_DEFAULT_USER=allspark; export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password); exec docker-entrypoint.sh rabbitmq-server']
+    secrets: [rabbit_password]
+    volumes: [rabbit_data:/var/lib/rabbitmq]
+    networks: [backend]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+  redis:
+    image: redis:7.4-bookworm
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    entrypoint: [/bin/sh, -ec]
+    command: ['exec redis-server --requirepass "$$(cat /run/secrets/redis_password)" --maxmemory 128mb --maxmemory-policy noeviction --save "" --appendonly no']
+    secrets: [redis_password]
+    networks: [backend]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH=$$(cat /run/secrets/redis_password) redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: *logging
+  migrate:
+    <<: *go
+    environment:
+      <<: *env
+      ROLE: migrate
+      APP_PASSWORD_FILE: /run/secrets/db_password
+      DB_USER: allspark_owner
+      DB_PASSWORD_FILE: /run/secrets/db_admin_password
+    secrets: [db_admin_password, db_password]
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+  engine:
+    image: allspark-fiscal-engine:local
+    build: ./engines/nfephp
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      ENGINE_TOKEN_FILE: /run/secrets/engine_token
+      ICP_CA_FILE: /run/secrets/icp_ca
+      NFE_SCHEMA: PL_010_V1.30
+      ENABLE_ISSUANCE: "${ENABLE_ISSUANCE:-false}"
+      ALLOW_TEST_CERTIFICATES: "false"
+      PHP_CLI_SERVER_WORKERS: "4"
+    secrets: [engine_token, icp_ca]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [backend, egress]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, php, -r, "exit(@file_get_contents('http://127.0.0.1:9000/healthz') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+  api:
+    <<: *go
+    networks: [backend, edge]
+    environment:
+      <<: *env
+      ROLE: api
+      TENANT_RATE_PER_SECOND: "${TENANT_RATE_PER_SECOND:-200}"
+      MAX_PENDING_JOBS: "100000"
+    secrets: [db_password, master_key, engine_token, redis_password]
+    ports: ["127.0.0.1:${API_PORT:-8088}:8080"]
+    volumes: [./var/objects:/data/objects:ro]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+      engine: {condition: service_healthy}
+  dispatcher:
+    <<: *go
+    environment:
+      <<: *env
+      ROLE: dispatcher
+    secrets: [db_password, rabbit_password]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      rabbitmq: {condition: service_healthy}
+  worker:
+    <<: *go
+    environment:
+      <<: *env
+      ROLE: worker
+      DB_POOL_MAX: "8"
+      WORKER_CONCURRENCY: "8"
+    secrets: [db_password, rabbit_password, master_key, engine_token, redis_password]
+    volumes: [./var/objects:/data/objects]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      rabbitmq: {condition: service_healthy}
+      engine: {condition: service_healthy}
+networks:
+  backend: {internal: true}
+  egress: {}
+  edge: {}
+volumes:
+  postgres_data:
+  rabbit_data:
+secrets:
+  db_password: {file: ./var/secrets/db_password}
+  db_admin_password: {file: ./var/secrets/db_admin_password}
+  rabbit_password: {file: ./var/secrets/rabbit_password}
+  redis_password: {file: ./var/secrets/redis_password}
+  engine_token: {file: ./var/secrets/engine_token}
+  master_key: {file: ./var/secrets/master_key}
+  icp_ca: {file: ./var/secrets/icp_ca}

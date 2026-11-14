@@ -1,0 +1,9 @@
+# Optional local overlay: docker compose -f compose.yaml -f compose.observability.yaml up -d
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks: [backend, edge]
+    ports: ['127.0.0.1:9091:9090']
+    restart: unless-stopped

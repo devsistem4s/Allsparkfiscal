@@ -1,0 +1,801 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AllSpark Fiscal — proposta futura NÃO EXECUTÁVEL",
+    "version": "0.0.0-planned",
+    "description": "Não usar como client SDK atual. 501 é marcador de planejamento; rotas inexistentes no runtime retornam 404."
+  },
+  "paths": {
+    "/v1/auth/token": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/auth/revoke": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/nfe": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/nfe/{id}": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfe/validate": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/nfe/{id}/xml": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfe/{id}/pdf": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfe/{id}/files": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfe/{id}/events": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfe/{id}/cancel": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfce": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/nfce/{id}": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfce/validate": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/nfce/{id}/xml": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfce/{id}/pdf": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfce/{id}/files": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfce/{id}/events": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfce/{id}/cancel": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/companies/{id}/fiscal/nfse": {
+      "put": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfse": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/nfse/{id}": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfse/validate": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/nfse/{id}/xml": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfse/{id}/pdf": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfse/{id}/files": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfse/{id}/events": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfse/{id}/cancel": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfe/{id}/correction-letter": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/nfe/void-number-range": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/nfse/{id}/replace": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/documents/{id}/events": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/batches": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/batches/{id}": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/imports": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/imports/{id}": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/batches/{id}/documents": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/v1/webhooks": {
+      "post": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/webhooks/{id}": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      }
+    },
+    "/v1/webhooks/{id}/deliveries": {
+      "get": {
+        "summary": "Planejado — não implementado",
+        "x-implementation-status": "planned",
+        "responses": {
+          "501": {
+            "description": "Especificação de destino; não há handler implementado nesta versão."
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    }
+  }
+}
