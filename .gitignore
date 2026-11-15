@@ -6,6 +6,7 @@
 *.p12
 *.pem
 *.key
+*.pdf
 /vendor/
 **/vendor/
 /var/
