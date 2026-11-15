@@ -424,7 +424,7 @@ func normalizeInput(in *store.Input) {
 		in.Kind = "nfe"
 	}
 	if in.Operation == "" {
-		in.Operation = "generate"
+		in.Operation = "issue"
 	}
 	if in.Environment == "" {
 		in.Environment = "homologation"

@@ -366,3 +366,29 @@ Durante a sessão, validamos intencionalmente todos os cenários de erro da API 
 3. Testar cancelamento real após `authorized` com `POST /cancel` + `reason` (15-255 chars)
 4. NFC-e → requer CSC e CSCid obtidos junto à SEFAZ estadual
 5. Monitorar via Portainer + dashboard Prometheus/Grafana no servidor
+
+---
+
+## 7. Homologação Completa Transmitida em Tempo Real à SEFAZ-BA
+
+Em 15/11/2026, realizamos o ciclo completo de transmissão com os servidores oficiais da SEFAZ Bahia (`https://allsparkfiscal.allsparkhub.com`):
+
+### 1. Parâmetros Reais Descobertos via Consulta Cadastro SEFAZ-BA:
+- **CNPJ:** `63.687.210/0001-10`
+- **Inscrição Estadual (IE):** `237997157` (Ativa no Cadastro Centralizado de Contribuintes)
+- **CRT:** `4` (Simples Nacional - Microempreendedor Individual / MEI)
+- **Regra SEFAZ-BA (`autXML`):** Exigência do CNPJ da SEFAZ Bahia `13.937.073/0001-56` para empresas sem contador cadastrado. O AllSpark Fiscal injeta automaticamente para empresas da Bahia.
+
+### 2. NF-e Emitida e Autorizada na SEFAZ (`SILAS-SEFAZ-ISSUE-004`):
+- **Chave de Acesso:** `29261163687210000110550010000000041236372404`
+- **Protocolo de Autorização:** `129261000710494`
+- **Status cStat:** `100 - Autorizado o uso da NF-e`
+- **XML Distribuído (`nfeProc`):** 6.501 bytes (contém `<NFe>`, `<Signature>` e `<protNFe>`)
+- **DANFE PDF Oficial:** 15.189 bytes renderizado com o protocolo de autorização
+- **Webhook Entregue:** Evento `document.authorized`, HTTP 200 via `https://httpbin.org/post`
+
+### 3. Cancelamento Oficial Realizado na SEFAZ:
+- **Requisição:** `POST /v1/documents/ref/SILAS-SEFAZ-ISSUE-004/cancel`
+- **Protocolo do Evento de Cancelamento:** `129261005268018`
+- **Status cStat:** `135 - Evento registrado e vinculado a NF-e`
+- **Status Final do Documento:** `canceled`

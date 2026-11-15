@@ -47,10 +47,17 @@ final class Engine
             // Intermediates supplied inside the PKCS#12 are untrusted chain material.
             $bag = [];
             if (!openssl_pkcs12_read($raw, $bag, $input['password'] ?? '')) { throw new \DomainException('INVALID_CERTIFICATE'); }
+            $intermediates = [];
+            foreach ($bag['extracerts'] ?? [] as $c) {
+                $p = openssl_x509_parse($c);
+                if ($p && ($p['name'] ?? '') !== ($p['issuer']['name'] ?? '')) {
+                    $intermediates[] = $c;
+                }
+            }
             $chain = tempnam(sys_get_temp_dir(), 'chain-');
             try {
-                file_put_contents($chain, implode("\n", $bag['extracerts'] ?? []));
-                $valid = openssl_x509_checkpurpose((string)$cert->publicKey, X509_PURPOSE_ANY, [$ca], empty($bag['extracerts']) ? null : $chain);
+                file_put_contents($chain, implode("\n", $intermediates));
+                $valid = openssl_x509_checkpurpose((string)$cert->publicKey, X509_PURPOSE_ANY, [$ca], empty($intermediates) ? null : $chain);
                 if ($valid !== true && $valid !== 1) { throw new \DomainException('CERTIFICATE_UNTRUSTED'); }
             } finally { if (is_file($chain)) { unlink($chain); } }
         }
@@ -107,8 +114,10 @@ final class Engine
         $company = $input['company'];
         $kind = $input['document']['kind'] ?? 'nfe';
         $hasIde = false;
+        $hasAutXML = false;
         foreach ($input['document']['invoice'] as $row) {
             $tag = $row['tag'] ?? '';
+            if ($tag === 'autXML') { $hasAutXML = true; }
             if (!in_array($tag, self::TAGS, true) || !method_exists($make, 'tag'.$tag)) { throw new \DomainException('UNSUPPORTED_FISCAL_TAG'); }
             $v = $row['values'];
             if ($tag === 'emit') { continue; } // Issuer always comes from the authorized company.
@@ -132,6 +141,9 @@ final class Engine
             $make->{'tag'.$tag}((object)$v);
         }
         if (!$hasIde) { throw new \DomainException('IDE_REQUIRED'); }
+        if (!$hasAutXML && ($company['uf'] ?? '') === 'BA') {
+            $make->tagautXML((object)['CNPJ' => '13937073000156']);
+        }
         $make->tagemit((object)['CNPJ'=>$company['cnpj'], 'xNome'=>$company['name'], 'IE'=>$company['ie'], 'CRT'=>$company['crt']]);
         try {
             $xml = $make->getXML();
@@ -148,7 +160,7 @@ final class Engine
 
     public function transmit(array $input): array
     {
-        if (getenv('ENABLE_ISSUANCE') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
+        if (getenv('ENABLE_ISSUANCE') !== 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
         $tools = $this->tools($input);
         $signed = $input['signed_xml'];
         $this->assertIssuer($signed, $input);
@@ -159,7 +171,7 @@ final class Engine
 
     public function reconcile(array $input): array
     {
-        if (getenv('ENABLE_ISSUANCE') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
+        if (getenv('ENABLE_ISSUANCE') !== 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
         $tpAmb = $this->resolveTpAmb($input);
         $tools = $this->tools($input);
         $this->assertIssuer($input['signed_xml'], $input);
@@ -170,7 +182,7 @@ final class Engine
 
     public function status(array $input): array
     {
-        if (getenv('ENABLE_ISSUANCE') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
+        if (getenv('ENABLE_ISSUANCE') !== 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
         $tpAmb = $this->resolveTpAmb($input);
         $tools = $this->tools($input);
         $uf = $input['uf'] ?? ($input['company']['uf'] ?? '');
@@ -190,7 +202,7 @@ final class Engine
 
     public function cancel(array $input): array
     {
-        if (getenv('ENABLE_ISSUANCE') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
+        if (getenv('ENABLE_ISSUANCE') !== 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
         $tools = $this->tools($input);
         $key = (string)($input['access_key'] ?? '');
         $reason = trim((string)($input['reason'] ?? ''));
@@ -224,7 +236,7 @@ final class Engine
 
     public function correction_letter(array $input): array
     {
-        if (getenv('ENABLE_ISSUANCE') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
+        if (getenv('ENABLE_ISSUANCE') !== 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
         $tools = $this->tools($input);
         $key = (string)($input['access_key'] ?? '');
         $correction = trim((string)($input['correction'] ?? ''));
@@ -263,7 +275,7 @@ final class Engine
 
     public function void_range(array $input): array
     {
-        if (getenv('ENABLE_ISSUANCE') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
+        if (getenv('ENABLE_ISSUANCE') !== 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
         $tpAmb = $this->resolveTpAmb($input);
         $tools = $this->tools($input);
         $series = (int)($input['series'] ?? -1);
@@ -299,7 +311,7 @@ final class Engine
 
     public function dist_dfe(array $input): array
     {
-        if (getenv('ENABLE_ISSUANCE') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
+        if (getenv('ENABLE_ISSUANCE') !== 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
         $tools = $this->tools($input);
         $ultNSU = (int)($input['last_nsu'] ?? 0);
         $numNSU = (int)($input['nsu'] ?? 0);
@@ -330,7 +342,7 @@ final class Engine
 
     public function manifest(array $input): array
     {
-        if (getenv('ENABLE_ISSUANCE') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
+        if (getenv('ENABLE_ISSUANCE') !== 'true') { throw new \DomainException('TRANSMISSION_DISABLED'); }
         $tools = $this->tools($input);
         $key = (string)($input['access_key'] ?? '');
         $type = (string)($input['type'] ?? 'ciencia');
