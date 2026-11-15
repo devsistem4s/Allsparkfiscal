@@ -1,4 +1,4 @@
-.PHONY: init up down test test-engine integration recovery load docs upstreams
+.PHONY: init up down test test-engine integration recovery load docs upstreams deploy-vps
 init:
 	python3 scripts/init-local.py
 up:
@@ -20,3 +20,5 @@ docs:
 	python3 scripts/build-openapi.py
 upstreams:
 	python3 scripts/fetch-upstreams.py
+deploy-vps:
+	sh infra/swarm-deploy.sh --vps

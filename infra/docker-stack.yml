@@ -1,385 +1,33 @@
-version: "3.9"
+version: "3.8"
 
 # ==============================================================================
-# AllSpark Fiscal — Stack Oficial de Produção / Alta Escala (Docker Swarm)
-# Dimensionada para > 50.000 a 500.000+ notas fiscais/dia
-# Uso: sh infra/swarm-deploy.sh  (ou: docker stack deploy -c infra/docker-stack.yml allspark-fiscal)
+# AllSpark Fiscal — Stack Oficial de Produção / Docker Swarm (Alta Escala)
+# Integrada com Traefik v3 (orionnet), Let's Encrypt SSL e Portainer CE
+# Domínio: allsparkfiscal.allsparkhub.com
+# Imagens: ghcr.io/devsistem4s/allsparkfiscal-api & allsparkfiscal-engine
 # ==============================================================================
-
-x-logging: &logging
-  driver: json-file
-  options:
-    max-size: "20m"
-    max-file: "5"
-
-x-common-env: &common-env
-  DB_HOST: postgres
-  DB_PORT: "5432"
-  DB_NAME: allspark
-  DB_USER: allspark
-  DB_PASSWORD_FILE: /run/secrets/allspark_db_password
-  RABBIT_HOST: rabbitmq
-  RABBIT_PORT: "5672"
-  RABBIT_USER: allspark
-  RABBIT_PASSWORD_FILE: /run/secrets/allspark_rabbit_password
-  REDIS_ADDR: redis:6379
-  REDIS_PASSWORD_FILE: /run/secrets/allspark_redis_password
-  ENGINE_URL: http://engine:9000
-  ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
-  MASTER_KEY_FILE: /run/secrets/allspark_master_key
-  ENABLE_ISSUANCE: "${ENABLE_ISSUANCE:-true}"
-  ENABLE_PRODUCTION: "${ENABLE_PRODUCTION:-false}"
-  STORAGE_DRIVER: "${STORAGE_DRIVER:-filesystem}"
-  OBJECTS_DIR: /data/objects
-  S3_ENDPOINT: "${S3_ENDPOINT:-}"
-  S3_BUCKET: "${S3_BUCKET:-allspark-fiscal}"
-  S3_REGION: "${S3_REGION:-us-east-1}"
-  S3_TLS: "${S3_TLS:-true}"
-
-services:
-  # ----------------------------------------------------------------------------
-  # 1. Camada de Dados e Mensageria (Stateful)
-  # ----------------------------------------------------------------------------
-  postgres:
-    image: postgres:17-bookworm
-    environment:
-      POSTGRES_USER: allspark_owner
-      POSTGRES_DB: allspark
-      POSTGRES_PASSWORD_FILE: /run/secrets/allspark_db_admin_password
-    command:
-      - "postgres"
-      - "-c"
-      - "max_connections=300"
-      - "-c"
-      - "shared_buffers=512MB"
-      - "-c"
-      - "effective_cache_size=1536MB"
-      - "-c"
-      - "work_mem=8MB"
-      - "-c"
-      - "synchronous_commit=on"
-    secrets:
-      - source: allspark_db_admin_password
-        target: allspark_db_admin_password
-      - source: allspark_db_password
-        target: db_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgres-init.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
-    networks:
-      - backend
-    shm_size: 512mb
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U allspark_owner -d allspark"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: any
-        delay: 5s
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 2048M
-        reservations:
-          cpus: "0.5"
-          memory: 512M
-    logging: *logging
-
-  rabbitmq:
-    image: rabbitmq:4.1-management
-    entrypoint: ["/bin/sh", "-ec"]
-    command:
-      - 'export RABBITMQ_DEFAULT_USER=allspark; export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/allspark_rabbit_password); exec docker-entrypoint.sh rabbitmq-server'
-    secrets:
-      - allspark_rabbit_password
-    volumes:
-      - rabbit_data:/var/lib/rabbitmq
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: any
-        delay: 5s
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 1536M
-        reservations:
-          cpus: "0.5"
-          memory: 512M
-    logging: *logging
-
-  redis:
-    image: redis:7.4-bookworm
-    entrypoint: ["/bin/sh", "-ec"]
-    command:
-      - 'exec redis-server --requirepass "$$(cat /run/secrets/allspark_redis_password)" --maxmemory 512mb --maxmemory-policy volatile-lru --appendonly yes --appendfsync everysec'
-    secrets:
-      - allspark_redis_password
-    volumes:
-      - redis_data:/data
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD-SHELL", 'REDISCLI_AUTH=$$(cat /run/secrets/allspark_redis_password) redis-cli ping | grep -q PONG']
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: any
-        delay: 3s
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 640M
-        reservations:
-          cpus: "0.25"
-          memory: 128M
-    logging: *logging
-
-  # ----------------------------------------------------------------------------
-  # 2. Job de Migração (One-shot no Deploy)
-  # ----------------------------------------------------------------------------
-  migrate:
-    image: ${GHCR_REGISTRY:-ghcr.io/spoltec/allsparkfiscal}-api:${IMAGE_TAG:-latest}
-    environment:
-      <<: *common-env
-      ROLE: migrate
-      DB_USER: allspark_owner
-      DB_PASSWORD_FILE: /run/secrets/allspark_db_admin_password
-      APP_PASSWORD_FILE: /run/secrets/allspark_db_password
-    secrets:
-      - allspark_db_admin_password
-      - allspark_db_password
-    networks:
-      - backend
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 10
-    logging: *logging
-
-  # ----------------------------------------------------------------------------
-  # 3. Motor Fiscal Interno (NFePHP v5.2.11 — Escalável Horizontalmente)
-  # ----------------------------------------------------------------------------
-  engine:
-    image: ${GHCR_REGISTRY:-ghcr.io/spoltec/allsparkfiscal}-engine:${IMAGE_TAG:-latest}
-    environment:
-      ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
-      ICP_CA_FILE: /run/secrets/allspark_icp_ca
-      NFE_SCHEMA: PL_010_V1.30
-      ENABLE_ISSUANCE: "${ENABLE_ISSUANCE:-true}"
-      ENABLE_PRODUCTION: "${ENABLE_PRODUCTION:-false}"
-      ALLOW_TEST_CERTIFICATES: "false"
-      PHP_CLI_SERVER_WORKERS: "8"
-    secrets:
-      - allspark_engine_token
-      - allspark_icp_ca
-    networks:
-      - backend
-      - egress
-    read_only: true
-    tmpfs:
-      - /tmp
-    healthcheck:
-      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:9000/healthz') === false ? 1 : 0);"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    deploy:
-      mode: replicated
-      replicas: 4
-      endpoint_mode: vip
-      update_config:
-        parallelism: 2
-        delay: 5s
-        order: start-first
-        failure_action: rollback
-      restart_policy:
-        condition: any
-        delay: 3s
-      resources:
-        limits:
-          cpus: "1.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 128M
-    logging: *logging
-
-  # ----------------------------------------------------------------------------
-  # 4. API HTTP Multi-Tenant (Recepção Rápida + Validação + Enfileiramento)
-  # ----------------------------------------------------------------------------
-  api:
-    image: ${GHCR_REGISTRY:-ghcr.io/spoltec/allsparkfiscal}-api:${IMAGE_TAG:-latest}
-    environment:
-      <<: *common-env
-      ROLE: api
-      DB_POOL_MAX: "25"
-      TENANT_RATE_PER_SECOND: "${TENANT_RATE_PER_SECOND:-500}"
-      MAX_PENDING_JOBS: "${MAX_PENDING_JOBS:-250000}"
-    secrets:
-      - allspark_db_password
-      - allspark_master_key
-      - allspark_engine_token
-      - allspark_redis_password
-    volumes:
-      - objects_data:/data/objects:ro
-    ports:
-      - target: 8080
-        published: 8088
-        protocol: tcp
-        mode: ingress
-    networks:
-      - backend
-      - edge
-    read_only: true
-    tmpfs:
-      - /tmp
-    deploy:
-      mode: replicated
-      replicas: 3
-      endpoint_mode: vip
-      update_config:
-        parallelism: 1
-        delay: 5s
-        order: start-first
-        failure_action: rollback
-      restart_policy:
-        condition: any
-        delay: 3s
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 128M
-    logging: *logging
-
-  # ----------------------------------------------------------------------------
-  # 5. Dispatcher Outbox -> RabbitMQ + Recuperador de Leases Expirados
-  # ----------------------------------------------------------------------------
-  dispatcher:
-    image: ${GHCR_REGISTRY:-ghcr.io/spoltec/allsparkfiscal}-api:${IMAGE_TAG:-latest}
-    environment:
-      <<: *common-env
-      ROLE: dispatcher
-      DB_POOL_MAX: "10"
-    secrets:
-      - allspark_db_password
-      - allspark_rabbit_password
-    networks:
-      - backend
-    read_only: true
-    tmpfs:
-      - /tmp
-    deploy:
-      mode: replicated
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 5s
-        order: start-first
-      restart_policy:
-        condition: any
-        delay: 3s
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
-    logging: *logging
-
-  # ----------------------------------------------------------------------------
-  # 6. Workers Assíncronos de Emissão, Geração e Reconciliação SEFAZ
-  # Escaláveis com `docker service scale allspark-fiscal_worker=12`
-  # ----------------------------------------------------------------------------
-  worker:
-    image: ${GHCR_REGISTRY:-ghcr.io/spoltec/allsparkfiscal}-api:${IMAGE_TAG:-latest}
-    environment:
-      <<: *common-env
-      ROLE: worker
-      DB_POOL_MAX: "12"
-      WORKER_CONCURRENCY: "${WORKER_CONCURRENCY:-8}"
-    secrets:
-      - allspark_db_password
-      - allspark_rabbit_password
-      - allspark_master_key
-      - allspark_engine_token
-      - allspark_redis_password
-    volumes:
-      - objects_data:/data/objects
-    networks:
-      - backend
-    read_only: true
-    tmpfs:
-      - /tmp
-    deploy:
-      mode: replicated
-      replicas: 8
-      update_config:
-        parallelism: 2
-        delay: 5s
-        order: start-first
-        failure_action: rollback
-      restart_policy:
-        condition: any
-        delay: 3s
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.2"
-          memory: 128M
-    logging: *logging
 
 networks:
-  backend:
-    driver: overlay
-    attachable: true
-    internal: true
-  egress:
-    driver: overlay
-    attachable: true
-  edge:
+  orionnet:
+    external: true
+    name: orionnet
+  allspark_backend:
     driver: overlay
     attachable: true
 
 volumes:
-  postgres_data:
-  rabbit_data:
-  redis_data:
-  objects_data:
+  allspark_postgres_data:
+    name: allspark_postgres_data
+  allspark_rabbit_data:
+    name: allspark_rabbit_data
+  allspark_redis_data:
+    name: allspark_redis_data
+  allspark_objects_data:
+    name: allspark_objects_data
+
+configs:
+  allspark_postgres_init:
+    external: true
 
 secrets:
   allspark_db_password:
@@ -397,3 +45,369 @@ secrets:
   allspark_icp_ca:
     external: true
 
+services:
+  # ----------------------------------------------------------------------------
+  # 1. PostgreSQL 17 Bookworm
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: allspark_owner
+      POSTGRES_DB: allspark
+      POSTGRES_PASSWORD_FILE: /run/secrets/allspark_db_admin_password
+    secrets:
+      - source: allspark_db_admin_password
+        target: allspark_db_admin_password
+      - source: allspark_db_password
+        target: db_password
+    configs:
+      - source: allspark_postgres_init
+        target: /docker-entrypoint-initdb.d/10-roles.sh
+        mode: 0555
+    volumes:
+      - allspark_postgres_data:/var/lib/postgresql/data
+    networks:
+      - allspark_backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U allspark_owner -d allspark"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
+
+  # ----------------------------------------------------------------------------
+  # 2. RabbitMQ 4.1 Management
+  # ----------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - 'export RABBITMQ_DEFAULT_USER=allspark; export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/allspark_rabbit_password); exec docker-entrypoint.sh rabbitmq-server'
+    secrets:
+      - allspark_rabbit_password
+    volumes:
+      - allspark_rabbit_data:/var/lib/rabbitmq
+    networks:
+      - allspark_backend
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
+
+  # ----------------------------------------------------------------------------
+  # 3. Redis 7.4 Bookworm
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7.4-bookworm
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - 'exec redis-server --requirepass "$$(cat /run/secrets/allspark_redis_password)" --maxmemory 256mb --maxmemory-policy volatile-lru --appendonly yes --appendfsync everysec'
+    secrets:
+      - allspark_redis_password
+    volumes:
+      - allspark_redis_data:/data
+    networks:
+      - allspark_backend
+    healthcheck:
+      test: ["CMD-SHELL", 'REDISCLI_AUTH=$$(cat /run/secrets/allspark_redis_password) redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # ----------------------------------------------------------------------------
+  # 4. Job de Migração One-Shot
+  # ----------------------------------------------------------------------------
+  migrate:
+    image: ${GHCR_REGISTRY:-ghcr.io/devsistem4s/allsparkfiscal}-api:${IMAGE_TAG:-latest}
+    environment:
+      ROLE: migrate
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: allspark
+      DB_USER: allspark_owner
+      DB_PASSWORD_FILE: /run/secrets/allspark_db_admin_password
+      APP_PASSWORD_FILE: /run/secrets/allspark_db_password
+    secrets:
+      - allspark_db_admin_password
+      - allspark_db_password
+    networks:
+      - allspark_backend
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+
+  # ----------------------------------------------------------------------------
+  # 5. Motor Fiscal PHP (NFePHP v5.2.11)
+  # ----------------------------------------------------------------------------
+  engine:
+    image: ${GHCR_REGISTRY:-ghcr.io/devsistem4s/allsparkfiscal}-engine:${IMAGE_TAG:-latest}
+    environment:
+      ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
+      ICP_CA_FILE: /run/secrets/allspark_icp_ca
+      NFE_SCHEMA: PL_010_V1.30
+      ENABLE_ISSUANCE: "true"
+      ENABLE_PRODUCTION: "false"
+      ALLOW_TEST_CERTIFICATES: "true"
+      PHP_CLI_SERVER_WORKERS: "4"
+    secrets:
+      - allspark_engine_token
+      - allspark_icp_ca
+    networks:
+      - allspark_backend
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:9000/healthz') === false ? 1 : 0);"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 384M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # ----------------------------------------------------------------------------
+  # 6. API Go HTTP REST + MCP Server + Webhooks (Traefik Ingress na porta 443 com SSL)
+  # ----------------------------------------------------------------------------
+  api:
+    image: ${GHCR_REGISTRY:-ghcr.io/devsistem4s/allsparkfiscal}-api:${IMAGE_TAG:-latest}
+    environment:
+      ROLE: api
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: allspark
+      DB_USER: allspark
+      DB_PASSWORD_FILE: /run/secrets/allspark_db_password
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: "5672"
+      RABBIT_USER: allspark
+      RABBIT_PASSWORD_FILE: /run/secrets/allspark_rabbit_password
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD_FILE: /run/secrets/allspark_redis_password
+      ENGINE_URL: http://engine:9000
+      ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
+      MASTER_KEY_FILE: /run/secrets/allspark_master_key
+      ENABLE_ISSUANCE: "true"
+      ENABLE_PRODUCTION: "false"
+      STORAGE_DRIVER: filesystem
+      OBJECTS_DIR: /data/objects
+      DB_POOL_MAX: "15"
+      TENANT_RATE_PER_SECOND: "500"
+    secrets:
+      - allspark_db_password
+      - allspark_master_key
+      - allspark_engine_token
+      - allspark_redis_password
+    volumes:
+      - allspark_objects_data:/data/objects:ro
+    networks:
+      - allspark_backend
+      - orionnet
+    deploy:
+      mode: replicated
+      replicas: 2
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 384M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=orionnet"
+        - "traefik.http.routers.allsparkfiscal.rule=Host(`allsparkfiscal.allsparkhub.com`)"
+        - "traefik.http.routers.allsparkfiscal.entrypoints=websecure"
+        - "traefik.http.routers.allsparkfiscal.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.allsparkfiscal.priority=100"
+        - "traefik.http.routers.allsparkfiscal.service=allsparkfiscal"
+        - "traefik.http.services.allsparkfiscal.loadbalancer.server.port=8080"
+        - "traefik.http.services.allsparkfiscal.loadbalancer.passHostHeader=true"
+
+  # ----------------------------------------------------------------------------
+  # 7. Dispatcher (Outbox -> RabbitMQ)
+  # ----------------------------------------------------------------------------
+  dispatcher:
+    image: ${GHCR_REGISTRY:-ghcr.io/devsistem4s/allsparkfiscal}-api:${IMAGE_TAG:-latest}
+    environment:
+      ROLE: dispatcher
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: allspark
+      DB_USER: allspark
+      DB_PASSWORD_FILE: /run/secrets/allspark_db_password
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: "5672"
+      RABBIT_USER: allspark
+      RABBIT_PASSWORD_FILE: /run/secrets/allspark_rabbit_password
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD_FILE: /run/secrets/allspark_redis_password
+      ENGINE_URL: http://engine:9000
+      ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
+      MASTER_KEY_FILE: /run/secrets/allspark_master_key
+      ENABLE_ISSUANCE: "true"
+      ENABLE_PRODUCTION: "false"
+      STORAGE_DRIVER: filesystem
+      OBJECTS_DIR: /data/objects
+      DB_POOL_MAX: "8"
+    secrets:
+      - allspark_db_password
+      - allspark_rabbit_password
+    networks:
+      - allspark_backend
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 192M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+
+  # ----------------------------------------------------------------------------
+  # 8. Worker (Emissão, Assinatura XML, SEFAZ, Webhooks)
+  # ----------------------------------------------------------------------------
+  worker:
+    image: ${GHCR_REGISTRY:-ghcr.io/devsistem4s/allsparkfiscal}-api:${IMAGE_TAG:-latest}
+    environment:
+      ROLE: worker
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: allspark
+      DB_USER: allspark
+      DB_PASSWORD_FILE: /run/secrets/allspark_db_password
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: "5672"
+      RABBIT_USER: allspark
+      RABBIT_PASSWORD_FILE: /run/secrets/allspark_rabbit_password
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD_FILE: /run/secrets/allspark_redis_password
+      ENGINE_URL: http://engine:9000
+      ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
+      MASTER_KEY_FILE: /run/secrets/allspark_master_key
+      ENABLE_ISSUANCE: "true"
+      ENABLE_PRODUCTION: "false"
+      STORAGE_DRIVER: filesystem
+      OBJECTS_DIR: /data/objects
+      DB_POOL_MAX: "12"
+      WORKER_CONCURRENCY: "8"
+    secrets:
+      - allspark_db_password
+      - allspark_rabbit_password
+      - allspark_master_key
+      - allspark_engine_token
+      - allspark_redis_password
+    volumes:
+      - allspark_objects_data:/data/objects
+    networks:
+      - allspark_backend
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 384M
+        reservations:
+          cpus: "0.1"
+          memory: 64M

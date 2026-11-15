@@ -115,15 +115,25 @@ Sempre que uma nota muda de estado (`authorized`, `validated`, `rejected`, `canc
 
 ---
 
-## 5. Deploy em Produção: GitHub Container Registry (GHCR) + Docker Swarm
+## 5. Produção: Deploy no Docker Swarm, GHCR, Traefik e Portainer
 
-Configure suas credenciais no arquivo `.env` (baseado no `.env.example`):
+O AllSpark Fiscal já está em produção no cluster Docker Swarm sob o domínio oficial com SSL automático via Let's Encrypt:
+- **Endpoint Oficial**: `https://allsparkfiscal.allsparkhub.com`
+- **Healthcheck Público**: `https://allsparkfiscal.allsparkhub.com/healthz`
+- **Servidor MCP Nativo**: `https://allsparkfiscal.allsparkhub.com/v1/mcp`
+- **Painel Portainer**: `https://portainer.allsparkhub.com` (Stack `allsparkfiscal`)
+
+### Comandos de Deploy e Atualização Contínua (Zero Downtime)
 ```sh
-# 1. Construir e publicar imagens no GitHub Container Registry (ghcr.io/spoltec/allsparkfiscal-*)
-sh infra/publish-ghcr.sh
+# Deploy / Atualização direta na VPS a partir das imagens mais recentes do GHCR:
+make deploy-vps
+# ou:
+sh infra/swarm-deploy.sh --vps
 
-# 2. Inicializar segredos, publicar no GHCR e fazer deploy no cluster Docker Swarm
-sh infra/swarm-deploy.sh
+# Na VPS:
+docker stack services allsparkfiscal
+docker service scale allsparkfiscal_worker=8 allsparkfiscal_engine=4 allsparkfiscal_api=4
+docker service logs -f allsparkfiscal_api
 ```
 
 ---

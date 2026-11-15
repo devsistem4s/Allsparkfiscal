@@ -1,7 +1,7 @@
 #!/bin/sh
 # ==============================================================================
 # AllSpark Fiscal — Script Completo de Build GHCR, Secrets e Deploy no Docker Swarm
-# Prepara segredos, publica imagens no GHCR (ghcr.io) e implanta a stack escalável
+# Suporta deploy local ou remoto na VPS (passando --vps)
 # ==============================================================================
 set -eu
 
@@ -14,20 +14,34 @@ if [ -f .env ]; then
   set +a
 fi
 
-STACK_NAME="${STACK_NAME:-allspark-fiscal}"
-GHCR_REGISTRY="${GHCR_REGISTRY:-ghcr.io/spoltec/allsparkfiscal}"
+STACK_NAME="${STACK_NAME:-allsparkfiscal}"
+GHCR_REGISTRY="${GHCR_REGISTRY:-ghcr.io/devsistem4s/allsparkfiscal}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
+VPS_HOST="${VPS_HOST:-vpsallspark}"
 export STACK_NAME GHCR_REGISTRY IMAGE_TAG
 
-echo "==> [1/4] Verificando estado do Docker Swarm..."
+if [ "${1:-}" = "--vps" ]; then
+  echo "==> [1/3] Construindo imagens e publicando no GHCR ($GHCR_REGISTRY:$IMAGE_TAG)..."
+  docker tag "ghcr.io/spoltec/allsparkfiscal-api:latest" "${GHCR_REGISTRY}-api:${IMAGE_TAG}" 2>/dev/null || true
+  docker tag "ghcr.io/spoltec/allsparkfiscal-engine:latest" "${GHCR_REGISTRY}-engine:${IMAGE_TAG}" 2>/dev/null || true
+  docker push "${GHCR_REGISTRY}-api:${IMAGE_TAG}"
+  docker push "${GHCR_REGISTRY}-engine:${IMAGE_TAG}"
+
+  echo "==> [2/3] Sincronizando stack.yml na VPS ($VPS_HOST)..."
+  scp infra/docker-stack.yml "${VPS_HOST}:/root/allsparkfiscal-deploy/stack.yml"
+
+  echo "==> [3/3] Executando deploy na VPS ($VPS_HOST)..."
+  ssh "${VPS_HOST}" "sh /root/allsparkfiscal-deploy/deploy.sh"
+  exit 0
+fi
+
+echo "==> [1/4] Verificando estado do Docker Swarm local..."
 if [ "$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo inactive)" != "active" ]; then
   echo "Inicializando Docker Swarm no nó local..."
   docker swarm init >/dev/null 2>&1 || docker swarm init --advertise-addr 127.0.0.1
 fi
 
 echo "==> [2/4] Garantindo segredos locais e registrando no Docker Swarm..."
-sh scripts/bootstrap.sh >/dev/null 2>&1 || true
-
 sync_secret() {
   secret_name="$1"
   secret_file="$2"
@@ -51,6 +65,10 @@ sync_secret "allspark_engine_token"       "var/secrets/engine_token"
 sync_secret "allspark_master_key"         "var/secrets/master_key"
 sync_secret "allspark_icp_ca"             "var/secrets/icp_ca"
 
+if ! docker config inspect allspark_postgres_init >/dev/null 2>&1; then
+  docker config create allspark_postgres_init infra/postgres-init.sh >/dev/null 2>&1 || true
+fi
+
 echo "==> [3/4] Construindo e publicando imagens no GHCR ($GHCR_REGISTRY:$IMAGE_TAG)..."
 if [ "${1:-}" = "--no-push" ]; then
   docker build -t "${GHCR_REGISTRY}-api:${IMAGE_TAG}" -f infra/Dockerfile .
@@ -60,7 +78,7 @@ else
 fi
 
 echo "==> [4/4] Publicando stack '$STACK_NAME' no Docker Swarm..."
-docker stack deploy --with-registry-auth -c infra/docker-stack.yml "$STACK_NAME"
+docker stack deploy --with-registry-auth --resolve-image always -c infra/docker-stack.yml "$STACK_NAME"
 
 echo ""
 echo "Stack '$STACK_NAME' implantada com sucesso!"
