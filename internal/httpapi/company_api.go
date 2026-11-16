@@ -312,8 +312,8 @@ func (s *Server) companyRoutes(w http.ResponseWriter, r *http.Request, p store.P
 			Series      *int   `json:"series"`
 			Enabled     *bool  `json:"enabled"`
 		}
-		if decode(w, r, &in) != nil || in.Environment != "homologation" || in.Series == nil || *in.Series < 0 || *in.Series > 889 || in.Enabled == nil || (path[4] != "nfe" && path[4] != "nfce") {
-			reply(w, r, 422, nil, "INVALID_FISCAL_CONFIG", "Informe environment homologation, series 0..889 e enabled; tipo nfe ou nfce.")
+		if decode(w, r, &in) != nil || (in.Environment != "homologation" && in.Environment != "production") || in.Series == nil || *in.Series < 0 || *in.Series > 889 || in.Enabled == nil || (path[4] != "nfe" && path[4] != "nfce") {
+			reply(w, r, 422, nil, "INVALID_FISCAL_CONFIG", "Informe environment (homologation ou production), series 0..889 e enabled; tipo nfe ou nfce.")
 			return true
 		}
 		f, e := s.Store.PutSettings(ctx, p, id, store.FiscalSettings{Kind: path[4], Environment: in.Environment, Series: *in.Series, Enabled: *in.Enabled}, req)
@@ -393,8 +393,16 @@ func (s *Server) sefazStatus(w http.ResponseWriter, r *http.Request, p store.Pri
 	if uf == "" {
 		uf = c.UF
 	}
+	env := r.URL.Query().Get("environment")
+	if env == "" {
+		env = "homologation"
+	}
+	if env != "homologation" && env != "production" {
+		reply(w, r, 422, nil, "INVALID_ENVIRONMENT", "environment deve ser homologation ou production.")
+		return
+	}
 	var out map[string]any
-	if e = s.Engine.Call(ctx, "status", map[string]any{"company": c, "certificate": cert, "uf": uf, "environment": "homologation"}, &out); e != nil {
+	if e = s.Engine.Call(ctx, "status", map[string]any{"company": c, "certificate": cert, "uf": uf, "environment": env}, &out); e != nil {
 		var ee *engine.Error
 		if errors.As(e, &ee) && !ee.Retryable {
 			reply(w, r, 422, nil, ee.Code, "Não foi possível consultar status na SEFAZ.")
@@ -607,8 +615,8 @@ func (s *Server) voidRange(w http.ResponseWriter, r *http.Request, p store.Princ
 		body.Environment = "homologation"
 	}
 	reason := strings.TrimSpace(body.Reason)
-	if (body.Kind != "nfe" && body.Kind != "nfce") || body.Environment != "homologation" || body.Series < 0 || body.Series > 889 || body.StartNumber < 1 || body.EndNumber < body.StartNumber || len(reason) < 15 || len(reason) > 255 {
-		reply(w, r, 422, nil, "INVALID_VOID_INPUT", "Informe kind (nfe/nfce), series (0..889), start_number, end_number e reason (15..255 caracteres).")
+	if (body.Kind != "nfe" && body.Kind != "nfce") || (body.Environment != "homologation" && body.Environment != "production") || body.Series < 0 || body.Series > 889 || body.StartNumber < 1 || body.EndNumber < body.StartNumber || len(reason) < 15 || len(reason) > 255 {
+		reply(w, r, 422, nil, "INVALID_VOID_INPUT", "Informe kind (nfe/nfce), environment (homologation ou production), series (0..889), start_number, end_number e reason (15..255 caracteres).")
 		return
 	}
 	ctx := r.Context()
@@ -651,12 +659,24 @@ func (s *Server) voidRange(w http.ResponseWriter, r *http.Request, p store.Princ
 
 func (s *Server) dfeSync(w http.ResponseWriter, r *http.Request, p store.Principal, companyID string) {
 	var body struct {
-		LastNSU   int    `json:"last_nsu"`
-		NSU       int    `json:"nsu"`
-		AccessKey string `json:"access_key,omitempty"`
+		LastNSU     int    `json:"last_nsu"`
+		NSU         int    `json:"nsu"`
+		AccessKey   string `json:"access_key,omitempty"`
+		Environment string `json:"environment,omitempty"`
 	}
 	if decode(w, r, &body) != nil || body.LastNSU < 0 || body.NSU < 0 {
 		reply(w, r, 422, nil, "INVALID_DFE_INPUT", "Informe last_nsu, nsu ou access_key válidos.")
+		return
+	}
+	env := body.Environment
+	if env == "" {
+		env = r.URL.Query().Get("environment")
+	}
+	if env == "" {
+		env = "production"
+	}
+	if env != "homologation" && env != "production" {
+		reply(w, r, 422, nil, "INVALID_ENVIRONMENT", "environment deve ser homologation ou production.")
 		return
 	}
 	ctx := r.Context()
@@ -684,7 +704,7 @@ func (s *Server) dfeSync(w http.ResponseWriter, r *http.Request, p store.Princip
 	err := s.Engine.Call(ctx, "dist_dfe", map[string]any{
 		"company":     c,
 		"certificate": cert,
-		"document":    map[string]any{"kind": "nfe", "environment": "homologation"},
+		"document":    map[string]any{"kind": "nfe", "environment": env},
 		"last_nsu":    body.LastNSU,
 		"nsu":         body.NSU,
 		"access_key":  body.AccessKey,

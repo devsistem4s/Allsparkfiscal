@@ -511,12 +511,24 @@ func (s *Server) companyReadiness(ctx context.Context, tenantID, companyID strin
 
 func (s *Server) manifestDFe(w http.ResponseWriter, r *http.Request, p store.Principal, companyID, accessKey string) {
 	var body struct {
-		Type     string `json:"type"`
-		Reason   string `json:"reason,omitempty"`
-		Sequence int    `json:"sequence,omitempty"`
+		Type        string `json:"type"`
+		Reason      string `json:"reason,omitempty"`
+		Sequence    int    `json:"sequence,omitempty"`
+		Environment string `json:"environment,omitempty"`
 	}
 	if decode(w, r, &body) != nil {
 		reply(w, r, 422, nil, "INVALID_JSON", "JSON inválido.")
+		return
+	}
+	env := body.Environment
+	if env == "" {
+		env = r.URL.Query().Get("environment")
+	}
+	if env == "" {
+		env = "production"
+	}
+	if env != "homologation" && env != "production" {
+		reply(w, r, 422, nil, "INVALID_ENVIRONMENT", "environment deve ser homologation ou production.")
 		return
 	}
 	if body.Type == "" {
@@ -529,8 +541,8 @@ func (s *Server) manifestDFe(w http.ResponseWriter, r *http.Request, p store.Pri
 		reply(w, r, 422, nil, "INVALID_DOCUMENT", "Informe chave de 44 dígitos e type entre ciencia, confirmacao, desconhecimento ou nao_realizada.")
 		return
 	}
-	if body.Type == "nao_realizada" && (len(strings.TrimSpace(body.Reason)) < 15 || len(strings.TrimSpace(body.Reason)) > 255) {
-		reply(w, r, 422, nil, "INVALID_DOCUMENT", "Para nao_realizada, informe reason entre 15 e 255 caracteres.")
+	if (body.Type == "nao_realizada" || body.Type == "desconhecimento") && (len(strings.TrimSpace(body.Reason)) < 15 || len(strings.TrimSpace(body.Reason)) > 255) {
+		reply(w, r, 422, nil, "INVALID_DOCUMENT", "Para nao_realizada ou desconhecimento, informe reason entre 15 e 255 caracteres.")
 		return
 	}
 	ctx := r.Context()
@@ -552,7 +564,7 @@ func (s *Server) manifestDFe(w http.ResponseWriter, r *http.Request, p store.Pri
 	err := s.Engine.Call(ctx, "manifest", map[string]any{
 		"company":     c,
 		"certificate": cert,
-		"document":    map[string]any{"kind": "nfe", "environment": "homologation"},
+		"document":    map[string]any{"kind": "nfe", "environment": env},
 		"access_key":  accessKey,
 		"type":        body.Type,
 		"reason":      body.Reason,

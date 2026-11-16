@@ -204,8 +204,8 @@ services:
       ICP_CA_FILE: /run/secrets/allspark_icp_ca
       NFE_SCHEMA: PL_010_V1.30
       ENABLE_ISSUANCE: "true"
-      ENABLE_PRODUCTION: "false"
-      ALLOW_TEST_CERTIFICATES: "true"
+      ENABLE_PRODUCTION: "true"
+      ALLOW_TEST_CERTIFICATES: "false"
       PHP_CLI_SERVER_WORKERS: "4"
     secrets:
       - allspark_engine_token
@@ -259,7 +259,7 @@ services:
       ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
       MASTER_KEY_FILE: /run/secrets/allspark_master_key
       ENABLE_ISSUANCE: "true"
-      ENABLE_PRODUCTION: "false"
+      ENABLE_PRODUCTION: "true"
       STORAGE_DRIVER: filesystem
       OBJECTS_DIR: /data/objects
       DB_POOL_MAX: "15"
@@ -328,7 +328,7 @@ services:
       ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
       MASTER_KEY_FILE: /run/secrets/allspark_master_key
       ENABLE_ISSUANCE: "true"
-      ENABLE_PRODUCTION: "false"
+      ENABLE_PRODUCTION: "true"
       STORAGE_DRIVER: filesystem
       OBJECTS_DIR: /data/objects
       DB_POOL_MAX: "8"
@@ -378,7 +378,7 @@ services:
       ENGINE_TOKEN_FILE: /run/secrets/allspark_engine_token
       MASTER_KEY_FILE: /run/secrets/allspark_master_key
       ENABLE_ISSUANCE: "true"
-      ENABLE_PRODUCTION: "false"
+      ENABLE_PRODUCTION: "true"
       STORAGE_DRIVER: filesystem
       OBJECTS_DIR: /data/objects
       DB_POOL_MAX: "12"

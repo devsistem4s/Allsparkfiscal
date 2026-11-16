@@ -205,7 +205,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			"mcp_server":             "/v1/mcp",
 			"worker_concurrency":     true,
 			"sefaz_anti_656_shield":  true,
-			"environments":           []string{"homologation"},
+			"environments":           []string{"homologation", "production"},
 			"document_types":         []string{"nfe", "nfce"},
 			"events":                 []string{"cancel", "correction_letter", "void_range", "query", "sefaz_status", "dist_dfe", "manifest"},
 			"nfse":                   "not_implemented",
@@ -383,8 +383,8 @@ func (s *Server) validate(in store.Input, key string) string {
 	if in.Kind != "nfe" && in.Kind != "nfce" {
 		return "tipo não implementado"
 	}
-	if in.Environment != "homologation" {
-		return "somente homologação habilitada"
+	if in.Environment != "homologation" && in.Environment != "production" {
+		return "environment deve ser homologation ou production"
 	}
 	if in.Operation != "generate" && in.Operation != "issue" {
 		return "operation deve ser generate ou issue"
@@ -395,8 +395,8 @@ func (s *Server) validate(in store.Input, key string) string {
 	if in.Series < 0 || in.Series > 889 {
 		return "série inválida"
 	}
-	if len(in.Invoice) > 1<<20 {
-		return "invoice acima de 1 MiB"
+	if len(in.Invoice) > 2<<20 {
+		return "invoice acima de 2 MiB"
 	}
 	invoice, err := fiscal.DecodeInvoice(in.Invoice)
 	if err != nil {

@@ -68,7 +68,7 @@ final class Engine
     {
         $env = $input['document']['environment'] ?? ($input['environment'] ?? 'homologation');
         if ($env === 'production') {
-            if (getenv('ENABLE_PRODUCTION') !== 'true' || getenv('ALLOW_TEST_CERTIFICATES') === 'true') {
+            if (getenv('ENABLE_PRODUCTION') !== 'true') {
                 throw new \DomainException('ENVIRONMENT_NOT_ALLOWED');
             }
             return 1;

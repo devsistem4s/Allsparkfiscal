@@ -32,7 +32,11 @@ func TestDocumentValidation(t *testing.T) {
 	}
 	in.Operation = "generate"
 	in.Environment = "production"
+	if why := s.validate(in, "test-key-123"); why != "" {
+		t.Fatalf("production should be allowed: %s", why)
+	}
+	in.Environment = "staging"
 	if s.validate(in, "test-key-123") == "" {
-		t.Fatal("production allowed")
+		t.Fatal("invalid environment should be rejected")
 	}
 }
