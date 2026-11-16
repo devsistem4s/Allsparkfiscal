@@ -35,7 +35,7 @@ Escopos: `companies:read/write`, `certificates:read/write`, `documents:read/writ
 
 Envelope padrão: `data`, `error` (`code`, `message`, `source`, `retryable`) e `request_id`. 401 credencial; 403 escopo; 404 ausente/outra organização; 409 conflito, empresa desativada ou ocupada; 422 entrada/configuração/certificado inválido; 429 limite; 503 dependência.
 
-Validações atuais incluem estrutura JSON estrita, limites de tamanho, tipos, ambiente, série, formatos de campos e consistência de quantidades/valores/pagamentos nos cenários tributários suportados. Não há consulta automática de situação cadastral, validação estadual completa de IE ou cálculo tributário universal. NFS-e, cancelamento, carta de correção e webhooks ainda não estão implementados. Homologação real por UF continua necessária.
+Validações atuais incluem estrutura JSON estrita, limites de tamanho, tipos, ambiente, série, formatos de campos e consistência de quantidades/valores/pagamentos nos cenários tributários suportados. Cancelamento (evento 110111), Carta de Correção Eletrônica (CC-e evento 110110), Inutilização de faixa de numeração, Distribuição DF-e (sefazDistDFe), Manifestação do Destinatário (MDe) e Webhooks com assinatura HMAC-SHA256 estão 100% implementados e validados em produção. NFS-e (ADN nacional) está no roadmap futuro.
 
 Contrato executável: `openapi/openapi.yaml`. Teste seguro do cadastro e preflight: `python3 scripts/test-company-api.py`, com emissão de homologação habilitada e sem envio de certificados ou documentos à SEFAZ. Migrações têm checksum e trava transacional; não editar migração já aplicada.
 
