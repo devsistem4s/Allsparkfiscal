@@ -194,6 +194,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.URL.Path == "/v1/capabilities" && r.Method == "GET":
 		reply(w, r, 200, map[string]any{
+			"version":                "1.2.0",
 			"multi_tenant":           true,
 			"queue":                  "rabbitmq",
 			"generation":             true,
@@ -208,6 +209,18 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			"environments":           []string{"homologation", "production"},
 			"document_types":         []string{"nfe", "nfce"},
 			"events":                 []string{"cancel", "correction_letter", "void_range", "query", "sefaz_status", "dist_dfe", "manifest"},
+			"features": map[string]any{
+				"dfe":                 true,
+				"dfe_cte":             true,
+				"import":              true,
+				"transport":           true,
+				"billing":             true,
+				"lots":                true,
+				"intermediary":        true,
+				"order_reference":     true,
+				"fci":                 true,
+				"detailed_validation": true,
+			},
 			"nfse":                   "not_implemented",
 			"bulk_max":               50,
 		}, "", "")
